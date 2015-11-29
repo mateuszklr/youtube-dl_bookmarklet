@@ -14,7 +14,7 @@ DAEMON_PORT = 3000
 
 @Grapes([
         @Grab(group='javax.servlet', module='javax.servlet-api', version='3.0.1'),
-        @Grab(group='org.eclipse.jetty.aggregate', module='jetty-all-server', version='8.1.18.v20150929', transitive=false)
+        @Grab(group='org.eclipse.jetty.aggregate', module='jetty-all-server', version='8.1.15.v20140411', transitive=false)
 ])
 
 def startJetty() {
