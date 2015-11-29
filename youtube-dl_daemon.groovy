@@ -11,7 +11,7 @@ import io.vertx.ext.web.handler.sockjs.SockJSHandler
 
 import static java.lang.System.getenv
 
-DAEMON_PORT = 3001
+DAEMON_PORT = 3000
 DOWNLOAD_DIR = "${getenv('HOME')}/Downloads/"
 
 vertx = Vertx.vertx()
@@ -24,36 +24,49 @@ vertx = Vertx.vertx()
 def startVertx() {
     println 'Starting Vert.x'
     def router = Router.router(vertx)
+
+    // Create a bridge/event bus extension for SockJS
+    // The event bus is extended to be available on the web side
     router.route('/eventbus/*').handler(eventBusHandler())
 
+    // Handle GET requests on /dl/{url}
     router.getWithRegex('\\/dl\\/(.*)').handler(downloadRequestHandler)
 
+    // Generate nice error pages on error
     router.route().failureHandler(ErrorHandler.create())
+
+    // Serve static content from /webroot
     router.route().handler(StaticHandler.create())
 
     vertx.createHttpServer().requestHandler(router.&accept).listen(DAEMON_PORT)
 }
 
+SockJSHandler eventBusHandler() {
+    // Vertx defaults to a deny-all policy on SockJS bridge so we need to set
+    // the allowed addresses
+    def options = new BridgeOptions()
+            .addOutboundPermitted(new PermittedOptions().setAddressRegex('feed\\..*')
+    )
+    SockJSHandler.create(vertx).bridge(options)
+}
+
 downloadRequestHandler = { context ->
+    // param0 is the first regex capture group from the URI
     def url = context.request().getParam('param0')
     println "Requested download of URL: $url"
 
     def process = "youtube-dl --no-playlist -o $DOWNLOAD_DIR/%(title)s.%(ext)s --extract-audio $url".execute()
 
-    asyncReader(process.in, 'stdin')
-    asyncReader(process.err, 'stderr')
+    // Asynchronously read from both streams and publish the result on the event bus
+    // on the appropriate address
+    asyncReader(process.in, 'feed.output')
+    asyncReader(process.err, 'feed.error')
 
+    // Download initiated, redirect to the status page
     context.response()
             .putHeader('Location', '../status.html')
             .setStatusCode(HttpURLConnection.HTTP_SEE_OTHER)
             .end()
-}
-
-SockJSHandler eventBusHandler() {
-    def options = new BridgeOptions()
-            .addOutboundPermitted(new PermittedOptions().setAddress('output_feed')
-    )
-    SockJSHandler.create(vertx).bridge(options)
 }
 
 def asyncReader(stream, address) {
@@ -63,7 +76,7 @@ def asyncReader(stream, address) {
         def line
         while (line = reader.readLine()) {
             println line
-            vertx.eventBus().send('output_feed', JsonOutput.toJson([line: line]))
+            vertx.eventBus().send(address, JsonOutput.toJson([line: line]))
         }
 
         println "$address reader finished"
