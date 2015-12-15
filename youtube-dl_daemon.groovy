@@ -47,7 +47,7 @@ class DownloadServlet extends AbstractHttpServlet {
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         def url = req.getParameter('url')
-        def process = "youtube-dl --no-playlist -o $DOWNLOAD_DIR/%(title)s.%(ext)s --extract-audio $url".execute()
+        def process = "youtube-dl --no-playlist -o $DOWNLOAD_DIR/%(title)s.%(ext)s --embed-thumbnail --extract-audio $url".execute()
 
         process.waitFor()
 
