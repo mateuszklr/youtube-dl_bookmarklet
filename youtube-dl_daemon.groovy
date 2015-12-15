@@ -55,7 +55,7 @@ downloadRequestHandler = { context ->
     def url = context.request().getParam('param0')
     println "Requested download of URL: $url"
 
-    def process = "youtube-dl --no-playlist -o $DOWNLOAD_DIR/%(title)s.%(ext)s --extract-audio $url".execute()
+    def process = "youtube-dl --no-playlist -o $DOWNLOAD_DIR/%(title)s.%(ext)s --embed-thumbnail --extract-audio $url".execute()
 
     // Asynchronously read from both streams and publish the result on the event bus
     // on the appropriate address
