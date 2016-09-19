@@ -12,7 +12,7 @@ import io.vertx.ext.web.handler.sockjs.SockJSHandler
 import static java.lang.System.getenv
 
 DAEMON_PORT = 3000
-DOWNLOAD_DIR = "${getenv('HOME')}/Downloads/"
+DOWNLOAD_DIR = "${getenv('HOME')}/Dropbox/itunes_import/youtube-dl_bookmarklet/output"
 
 vertx = Vertx.vertx()
 
@@ -55,7 +55,9 @@ downloadRequestHandler = { context ->
     def url = context.request().getParam('param0')
     println "Requested download of URL: $url"
 
-    def process = "youtube-dl --no-playlist -o $DOWNLOAD_DIR/%(title)s.%(ext)s --embed-thumbnail --extract-audio $url".execute()
+    def process_string = "youtube-dl --no-playlist -o $DOWNLOAD_DIR/%(title)s.%(ext)s --metadata-from-title %(artist)s-%(title)s --add-metadata -f bestaudio[ext=m4a]/best[ext=mp4]/best --embed-thumbnail --extract-audio $url"
+    println process_string
+    def process = process_string.execute()
 
     // Asynchronously read from both streams and publish the result on the event bus
     // on the appropriate address
